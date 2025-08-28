@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: friendfinder
+    env: node
+    plan: free # Change to 'starter' or higher for production
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXTAUTH_URL
+        value: https://friendfinder.onrender.com # Update this to your actual Render URL
+      - key: PORT
+        value: 10000
+    autoDeploy: true
+    branch: main

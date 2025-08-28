@@ -40,9 +40,13 @@ async function dbConnect(): Promise<typeof mongoose> {
     const opts = {
       bufferCommands: false,
       // Connection pool settings for production
-      maxPoolSize: 10,
+      maxPoolSize: process.env.NODE_ENV === 'production' ? 5 : 10,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
+      // Additional production optimizations
+      maxIdleTimeMS: 30000,
+      retryWrites: true,
     };
 
     cached.promise = mongoose.connect(MONGODB_URI!, opts);

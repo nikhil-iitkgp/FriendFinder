@@ -39,6 +39,7 @@ bash.exe.stackdump
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.render
 
 # vercel
 .vercel
