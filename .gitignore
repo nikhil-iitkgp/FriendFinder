@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+test-*.js
+debug-*.js
 
 # next.js
 /.next/
@@ -23,12 +27,15 @@
 # misc
 .DS_Store
 *.pem
+nul
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.stackdump
+bash.exe.stackdump
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -39,3 +46,34 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Documentation files - specific ones to ignore
+CODEBASE_ANALYSIS.md
+DEPLOYMENT.md
+PRODUCTION_READINESS.md
+PROJECT_OVERVIEW.md
+SETTINGS_PERSISTENCE_FIX.md
+STEP_12_MESSAGING_COMPLETE.md
+STEP_13_BLUETOOTH_COMPLETE.md
+STEP_NOTES.md
+
+# Uploads and user-generated content
+/public/uploads/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+
+# Test and debug scripts
+test-accept-request.js
+test-api.js
+test-friend-request-with-auth.js
+test-friend-requests.js
+test-settings-persistence.js
