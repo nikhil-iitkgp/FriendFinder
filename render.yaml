@@ -9,8 +9,10 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXTAUTH_URL
-        value: https://friendfinder.onrender.com # Update this to your actual Render URL
+        value: https://friendfinder-0i02.onrender.com
       - key: PORT
         value: 10000
+      - key: SKIP_ENV_VALIDATION
+        value: "1"
     autoDeploy: true
     branch: main

@@ -9,11 +9,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:production": "SKIP_ENV_VALIDATION=1 next build",
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "type-check": "tsc --noEmit",
-    "build:production": "node scripts/build-production.js",
     "build:analyze": "ANALYZE=true npm run build",
     "test": "jest",
     "test:watch": "jest --watch",
