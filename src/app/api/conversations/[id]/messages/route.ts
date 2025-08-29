@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { dbConnect } from '@/lib/mongoose'
-import { Conversation, Message } from '@/models/Conversation'
+import dbConnect from '@/lib/mongoose'
+import { Conversation } from '@/models/Conversation'
+import Message from '@/models/Message'
 
 // GET /api/conversations/[id]/messages - Get messages for a conversation
 export async function GET(
@@ -36,10 +37,10 @@ export async function GET(
       )
     }
 
-    // Build query
+    // Build query - use chatId instead of conversationId
     const query: any = { 
-      conversationId, 
-      deletedAt: { $exists: false } 
+      chatId: conversationId, 
+      isDeleted: false
     }
     
     if (before) {
@@ -48,6 +49,8 @@ export async function GET(
 
     // Get messages
     const messages = await Message.find(query)
+      .populate('senderId', 'username profilePicture')
+      .populate('receiverId', 'username profilePicture')
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean()
@@ -99,21 +102,40 @@ export async function POST(
       )
     }
 
-    // Create message
+    // For the main Message schema, we need to determine the receiver
+    // Since this is a conversation-based approach, we need to find the other participant
+    const otherParticipantId = conversation.participants.find(
+      (p: string) => p !== session.user.id
+    )
+
+    if (!otherParticipantId) {
+      return NextResponse.json(
+        { error: 'Other participant not found' },
+        { status: 400 }
+      )
+    }
+
+    // Create message using the main Message schema format
     const message = new Message({
-      conversationId,
+      chatId: conversationId,
       senderId: session.user.id,
+      receiverId: otherParticipantId,
       content: content.trim(),
-      type
+      type,
+      status: 'sent'
     })
 
     await message.save()
 
+    // Populate sender info for response
+    await message.populate('senderId', 'username profilePicture')
+    await message.populate('receiverId', 'username profilePicture')
+
     // Update conversation's last message
     conversation.lastMessage = {
-      messageId: message._id.toString(),
+      messageId: (message._id as any).toString(),
       content: message.content,
-      senderId: message.senderId,
+      senderId: (message.senderId as any).toString(),
       timestamp: message.createdAt
     }
     
