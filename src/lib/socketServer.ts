@@ -119,15 +119,28 @@ export function initializeSocketIO(server: NetServer): SocketIOServer {
     }
   })
 
-  io.on('connection', (socket) => {
+  io.on('connection', async (socket) => {
     const user = socket.data.user
     console.log(`User connected: ${user.username} (${socket.id})`)
 
-    // Add user to online users
-    onlineUsers.set(user.id, user)
+    try {
+      // Update user's last seen immediately on connection
+      await dbConnect()
+      await User.findByIdAndUpdate(user.id, { lastSeen: new Date() })
 
-    // Broadcast user online status to friends
-    socket.broadcast.emit('user:online', user.id)
+      // Add user to online users
+      onlineUsers.set(user.id, user)
+
+      // Join user to their personal room
+      socket.join(`user:${user.id}`)
+
+      // Broadcast user online status to friends
+      await notifyFriendsOnlineStatus(user.id, true)
+
+      console.log(`User ${user.username} is now online`)
+    } catch (error) {
+      console.error('Error updating user online status:', error)
+    }
 
     // Handle user joining
     socket.on('user:join', async () => {
@@ -281,16 +294,60 @@ export function initializeSocketIO(server: NetServer): SocketIOServer {
       // Update last seen
       try {
         await User.findByIdAndUpdate(user.id, { lastSeen: new Date() })
+        
+        // Notify friends that user is offline
+        await notifyFriendsOnlineStatus(user.id, false)
+        
+        console.log(`User ${user.username} is now offline`)
       } catch (error) {
         console.error('Error updating last seen:', error)
       }
-      
-      // Broadcast user offline status
-      socket.broadcast.emit('user:offline', user.id)
     })
   })
 
   return io
+}
+
+// Helper function to notify friends about online status changes
+async function notifyFriendsOnlineStatus(userId: string, isOnline: boolean) {
+  try {
+    await dbConnect()
+    
+    // Get user's friends
+    const user = await User.findById(userId).select('friends username').lean()
+    if (!user) return
+
+    // Get online users to check who to notify
+    const friendsToNotify = user.friends.filter(friendId => {
+      // Check if friend is currently online
+      for (const [socketId, socketUser] of onlineUsers.entries()) {
+        if (socketUser.id === friendId.toString()) {
+          return true
+        }
+      }
+      return false
+    })
+
+    // Get the global io instance  
+    if (friendsToNotify.length > 0) {
+      const io = (global as any).socketIO
+      if (io) {
+        // Notify each online friend
+        friendsToNotify.forEach(friendId => {
+          io.to(`user:${friendId.toString()}`).emit('user:online', {
+            userId,
+            username: user.username,
+            isOnline,
+            timestamp: new Date().toISOString()
+          })
+        })
+      }
+    }
+
+    console.log(`Notified ${friendsToNotify.length} friends of ${user.username}'s status: ${isOnline ? 'online' : 'offline'}`)
+  } catch (error) {
+    console.error('Error notifying friends of status change:', error)
+  }
 }
 
 export { onlineUsers }

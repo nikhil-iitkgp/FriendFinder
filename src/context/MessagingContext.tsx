@@ -140,13 +140,21 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
     if (!session?.user) return;
 
     try {
+      // Get JWT token for socket authentication
+      const tokenResponse = await fetch("/api/auth/user");
+      if (!tokenResponse.ok) {
+        throw new Error("Failed to get authentication token");
+      }
+      const tokenData = await tokenResponse.json();
+      const jwtToken = tokenData.token;
+
       // Initialize socket endpoint
       await fetch("/api/socket");
 
       const newSocket = io({
         path: "/api/socket",
         auth: {
-          token: session.user.email, // Using email as token for now
+          token: jwtToken, // Use proper JWT token
         },
       });
 

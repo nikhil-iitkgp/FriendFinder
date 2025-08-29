@@ -1,54 +1,49 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { encode } from 'next-auth/jwt'
 
-/**
- * Get current authenticated user session
- * GET /api/auth/user
- * 
- * Returns the current NextAuth session information
- */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.email) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Not authenticated',
-          session: null,
-        },
+        { error: 'Unauthorized' },
         { status: 401 }
-      );
+      )
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Session retrieved successfully',
-      data: {
-        session: {
-          user: {
-            id: session.user.id,
-            username: session.user.username,
-            email: session.user.email,
-            image: session.user.image,
-          },
-          expires: session.expires,
-        },
-        timestamp: new Date().toISOString(),
-      },
-    });
-  } catch (error) {
-    console.error('Get session error:', error);
+    // Create JWT token for socket authentication using next-auth's JWT encoder
+    const secret = process.env.NEXTAUTH_SECRET
+    if (!secret) {
+      throw new Error('NEXTAUTH_SECRET is not defined')
+    }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to get session',
-        message: error instanceof Error ? error.message : 'Unknown error',
+    const token = await encode({
+      token: { 
+        email: session.user.email,
+        name: session.user.name,
+        id: session.user.id,
+        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
       },
+      secret
+    })
+
+    return NextResponse.json({
+      token,
+      user: {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name
+      }
+    })
+
+  } catch (error) {
+    console.error('Error creating auth token:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
       { status: 500 }
-    );
+    )
   }
 }
