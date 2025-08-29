@@ -3,7 +3,7 @@ import { ReactElement } from "react";
 import { SessionProvider } from "next-auth/react";
 import { FriendsProvider } from "@/context/FriendsContext";
 import { LocationProvider } from "@/context/LocationContext";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 // Mock session data
 export const mockSession = {

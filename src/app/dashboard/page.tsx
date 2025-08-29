@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { useFriends } from "@/context/FriendsContext";
 import { useLocation } from "@/context/LocationContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -136,9 +136,13 @@ export default function DashboardPage() {
                 {friendsLoading ? (
                   <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 animate-spin text-gray-400" />
                 ) : (
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{friends.length}</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+                    {friends.length}
+                  </p>
                 )}
-                <p className="text-xs md:text-sm text-gray-600 font-medium">Friends</p>
+                <p className="text-xs md:text-sm text-gray-600 font-medium">
+                  Friends
+                </p>
               </div>
             </div>
           </CardContent>
@@ -154,9 +158,13 @@ export default function DashboardPage() {
                 {isLoadingMessages ? (
                   <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 animate-spin text-gray-400" />
                 ) : (
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{messagesCount}</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+                    {messagesCount}
+                  </p>
                 )}
-                <p className="text-xs md:text-sm text-gray-600 font-medium">Messages</p>
+                <p className="text-xs md:text-sm text-gray-600 font-medium">
+                  Messages
+                </p>
               </div>
             </div>
           </CardContent>
@@ -172,9 +180,13 @@ export default function DashboardPage() {
                 {isLoadingNearby ? (
                   <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 animate-spin text-gray-400" />
                 ) : (
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{nearbyUsers.length}</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+                    {nearbyUsers.length}
+                  </p>
                 )}
-                <p className="text-xs md:text-sm text-gray-600 font-medium">Nearby</p>
+                <p className="text-xs md:text-sm text-gray-600 font-medium">
+                  Nearby
+                </p>
               </div>
             </div>
           </CardContent>
@@ -187,8 +199,12 @@ export default function DashboardPage() {
                 <Heart className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-red-600" />
               </div>
               <div>
-                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{receivedRequests.length}</p>
-                <p className="text-xs md:text-sm text-gray-600 font-medium">Requests</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+                  {receivedRequests.length}
+                </p>
+                <p className="text-xs md:text-sm text-gray-600 font-medium">
+                  Requests
+                </p>
               </div>
             </div>
           </CardContent>
@@ -269,7 +285,9 @@ export default function DashboardPage() {
         <div>
           <Card className="border-0 shadow-lg">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+              <CardTitle className="text-lg font-semibold">
+                Quick Actions
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button
@@ -313,7 +331,9 @@ export default function DashboardPage() {
           {/* Profile Card */}
           <Card className="mt-6 border-0 shadow-lg">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold">Your Profile</CardTitle>
+              <CardTitle className="text-lg font-semibold">
+                Your Profile
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-4 mb-4">
@@ -334,10 +354,10 @@ export default function DashboardPage() {
                   </p>
                 </div>
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-all duration-200"
-                onClick={() => router.push('/dashboard/profile')}
+                onClick={() => router.push("/dashboard/profile")}
               >
                 Edit Profile
               </Button>
@@ -349,7 +369,9 @@ export default function DashboardPage() {
       {/* Getting Started Guide */}
       <Card className="border-0 shadow-lg">
         <CardHeader className="pb-4">
-          <CardTitle className="text-xl font-semibold">Getting Started with FriendFinder</CardTitle>
+          <CardTitle className="text-xl font-semibold">
+            Getting Started with FriendFinder
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
@@ -361,10 +383,10 @@ export default function DashboardPage() {
               <p className="text-sm text-gray-600 mb-3">
                 Add a photo and bio to help others recognize you
               </p>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="outline"
-                onClick={() => router.push('/dashboard/profile')}
+                onClick={() => router.push("/dashboard/profile")}
               >
                 Complete Profile
               </Button>
@@ -378,8 +400,8 @@ export default function DashboardPage() {
               <p className="text-sm text-gray-600 mb-3">
                 Allow location access to discover friends nearby
               </p>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="outline"
                 onClick={handleUpdateLocation}
               >
@@ -395,8 +417,8 @@ export default function DashboardPage() {
               <p className="text-sm text-gray-600 mb-3">
                 Find and connect with people in your area
               </p>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="outline"
                 onClick={handleDiscoverNearby}
               >

@@ -8,7 +8,7 @@ import React, {
   ReactNode,
 } from "react";
 import webRTCService, { CallData, CallStatus, CallType } from "@/lib/webrtc";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
 interface CallContextType {
   currentCall: CallData | null;

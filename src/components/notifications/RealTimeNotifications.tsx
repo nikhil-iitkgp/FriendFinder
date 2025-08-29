@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useFriends } from "@/context/FriendsContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { Bell, UserPlus, MessageCircle } from "lucide-react";
 

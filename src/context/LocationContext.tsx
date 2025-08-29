@@ -12,7 +12,7 @@ import geolocationService, {
   LocationCoordinates,
   NearbyUser,
 } from "@/lib/geolocation";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
 interface LocationContextType {
   // Location state

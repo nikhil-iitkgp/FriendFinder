@@ -5,7 +5,7 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { customRender as render } from "@/lib/test-utils";
 import { loginSchema, registerSchema } from "@/lib/validations";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 // Mock next-auth
 jest.mock("next-auth/react");

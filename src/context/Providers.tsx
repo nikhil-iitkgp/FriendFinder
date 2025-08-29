@@ -3,10 +3,10 @@
 import { ReactNode } from "react";
 import { SessionProvider } from "./SessionProvider";
 import { AuthProvider } from "./AuthContext";
-import { CallProvider } from "@/context/CallContext";
-import { LocationProvider } from "@/context/LocationContext";
-import { FriendsProvider } from "@/context/FriendsContext";
-import { MessagingProvider } from "@/context/MessagingContext";
+import { CallProvider } from "./CallContext";
+import { LocationProvider } from "./LocationContext";
+import { FriendsProvider } from "./FriendsContext";
+import { MessagingProvider } from "./MessagingContext";
 import { ThemeProvider } from "@/components/theme-provider";
 import type { Session } from "next-auth";
 

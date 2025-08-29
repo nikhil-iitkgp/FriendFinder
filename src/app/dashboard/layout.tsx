@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -118,7 +118,7 @@ export default function DashboardLayout({
                 );
               })}
             </nav>
-            
+
             {/* WiFi Manager in Sidebar */}
             <div className="px-4 pb-4">
               <WifiManager />
@@ -126,7 +126,6 @@ export default function DashboardLayout({
           </div>
         </div>
       )}
-
 
       {/* Main content */}
       <div className="flex flex-col flex-1">
@@ -152,7 +151,7 @@ export default function DashboardLayout({
                 FriendFinder
               </span>
             </div>
-            
+
             {/* Desktop Navigation tabs - centered */}
             <div className="hidden lg:flex flex-1 justify-center">
               <div className="flex items-center space-x-1">
@@ -194,10 +193,7 @@ export default function DashboardLayout({
               {/* Profile section */}
               <div className="flex items-center space-x-2">
                 <Avatar className="h-8 w-8 lg:h-9 lg:w-9 ring-2 ring-gray-100">
-                  <AvatarImage
-                    src={userImage || undefined}
-                    alt={displayName}
-                  />
+                  <AvatarImage src={userImage || undefined} alt={displayName} />
                   <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold">
                     {displayName
                       ? displayName

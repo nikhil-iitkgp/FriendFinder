@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Providers } from "@/contexts/Providers";
+import { Providers } from "@/context/Providers";
 import CallManager from "@/components/calls/CallManager";
 import RealTimeNotifications from "@/components/notifications/RealTimeNotifications";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -28,7 +28,12 @@ export const metadata: Metadata = {
     "real-time chat",
   ],
   authors: [{ name: "FriendFinder Team" }],
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -40,7 +45,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#000000" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body
