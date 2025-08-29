@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { SessionProvider } from "./SessionProvider";
+import { SessionProvider } from "@/context/SessionProvider";
 import { AuthProvider } from "./AuthContext";
 import { CallProvider } from "./CallContext";
 import { LocationProvider } from "./LocationContext";

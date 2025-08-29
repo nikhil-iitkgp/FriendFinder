@@ -9,7 +9,9 @@ import React, {
   useRef,
 } from "react";
 import { useSession } from "next-auth/react";
-import { io as ioClient, Socket } from "socket.io-client";
+import io from "socket.io-client";
+
+type SocketType = ReturnType<typeof io>;
 
 interface ChatMessage {
   _id: string;
@@ -58,7 +60,7 @@ interface TypingUser {
 
 interface MessagingContextType {
   // Connection
-  socket: Socket | null;
+  socket: SocketType | null;
   isConnected: boolean;
 
   // Chats
@@ -113,7 +115,7 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
   const { data: session, status } = useSession();
 
   // Socket connection
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [socket, setSocket] = useState<SocketType | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   // Chats
@@ -141,7 +143,7 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
       // Initialize socket endpoint
       await fetch("/api/socket");
 
-      const newSocket = ioClient({
+      const newSocket = io({
         path: "/api/socket",
         auth: {
           token: session.user.email, // Using email as token for now

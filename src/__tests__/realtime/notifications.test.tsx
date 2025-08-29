@@ -51,6 +51,7 @@ describe("Real-time Notifications Tests", () => {
       name: "Test User",
       username: "testuser",
     },
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
   };
 
   beforeEach(() => {
@@ -60,6 +61,7 @@ describe("Real-time Notifications Tests", () => {
     mockUseSession.mockReturnValue({
       data: mockSession,
       status: "authenticated",
+      update: jest.fn(),
     });
 
     mockUseAuth.mockReturnValue({
@@ -392,6 +394,7 @@ describe("Real-time Notifications Tests", () => {
       mockUseSession.mockReturnValue({
         data: null,
         status: "unauthenticated",
+        update: jest.fn(),
       });
 
       customRender(<RealTimeNotifications />);

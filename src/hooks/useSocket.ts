@@ -41,7 +41,7 @@ export function useSocket(): UseSocketReturn {
     console.log('Initializing Socket.IO connection...')
 
     import('socket.io-client').then((socketIO) => {
-      const io = socketIO.default || socketIO.io || socketIO
+      const io = socketIO.default || socketIO
 
       const socketInstance = io({
         path: '/api/socket',

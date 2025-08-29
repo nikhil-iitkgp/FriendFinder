@@ -12,7 +12,7 @@ export const mockSession = {
     email: "test@example.com",
     name: "Test User",
     username: "testuser",
-    image: null,
+    image: undefined,
   },
   expires: "2024-12-31",
 };

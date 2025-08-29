@@ -56,7 +56,7 @@ export async function sendFriendRequest(targetUserId: string): Promise<FriendReq
     }
 
     // Check if trying to send request to self
-    if (currentUser._id.toString() === targetUserId) {
+    if (currentUser._id?.toString() === targetUserId) {
       return {
         success: false,
         message: 'Cannot send friend request to yourself'
@@ -64,7 +64,7 @@ export async function sendFriendRequest(targetUserId: string): Promise<FriendReq
     }
 
     // Check if already friends
-    if (currentUser.friends.includes(targetUserId)) {
+    if (currentUser.friends.some(friendId => friendId.toString() === targetUserId)) {
       return {
         success: false,
         message: 'You are already friends with this user'
@@ -73,7 +73,7 @@ export async function sendFriendRequest(targetUserId: string): Promise<FriendReq
 
     // Check if friend request already sent
     const existingRequest = targetUser.friendRequests.find(
-      req => req.from.toString() === currentUser._id.toString() && req.status === 'pending'
+      req => req.from.toString() === currentUser._id?.toString() && req.status === 'pending'
     )
     if (existingRequest) {
       return {
@@ -95,7 +95,7 @@ export async function sendFriendRequest(targetUserId: string): Promise<FriendReq
 
     // Create friend request
     const friendRequest = {
-      from: currentUser._id,
+      from: currentUser._id as Types.ObjectId,
       fromName: currentUser.username || currentUser.email,
       fromAvatar: currentUser.profilePicture || null,
       status: 'pending',
@@ -113,7 +113,7 @@ export async function sendFriendRequest(targetUserId: string): Promise<FriendReq
 
     // Add sent request to current user's sentRequests (optional tracking)
     await User.findByIdAndUpdate(
-      currentUser._id,
+      currentUser._id as Types.ObjectId,
       {
         $push: {
           sentRequests: {
@@ -138,7 +138,7 @@ export async function sendFriendRequest(targetUserId: string): Promise<FriendReq
           type: 'friend_request',
           data: {
             targetUserId,
-            fromUserId: currentUser._id.toString(),
+            fromUserId: currentUser._id?.toString(),
             fromUserName: friendRequest.fromName,
             fromUserAvatar: friendRequest.fromAvatar
           }
@@ -227,7 +227,7 @@ export async function respondToFriendRequest(
     if (action === 'accept') {
       // Add each user to the other's friends list
       await User.findByIdAndUpdate(
-        currentUser._id,
+        currentUser._id as Types.ObjectId,
         {
           $addToSet: { friends: senderId },
           $pull: { friendRequests: { _id: requestId } }
@@ -237,8 +237,8 @@ export async function respondToFriendRequest(
       await User.findByIdAndUpdate(
         senderId,
         {
-          $addToSet: { friends: currentUser._id },
-          $pull: { sentRequests: { to: currentUser._id } }
+          $addToSet: { friends: currentUser._id as Types.ObjectId },
+          $pull: { sentRequests: { to: currentUser._id as Types.ObjectId } }
         }
       )
 
@@ -283,7 +283,7 @@ export async function respondToFriendRequest(
     } else if (action === 'reject') {
       // Remove the friend request
       await User.findByIdAndUpdate(
-        currentUser._id,
+        currentUser._id as Types.ObjectId,
         {
           $pull: { friendRequests: { _id: requestId } }
         }
@@ -293,7 +293,7 @@ export async function respondToFriendRequest(
       await User.findByIdAndUpdate(
         senderId,
         {
-          $pull: { sentRequests: { to: currentUser._id } }
+          $pull: { sentRequests: { to: currentUser._id as Types.ObjectId } }
         }
       )
 
@@ -443,7 +443,7 @@ export async function cancelFriendRequest(targetUserId: string): Promise<FriendR
       {
         $pull: { 
           friendRequests: { 
-            from: currentUser._id,
+            from: currentUser._id as Types.ObjectId,
             status: 'pending'
           } 
         }
@@ -452,7 +452,7 @@ export async function cancelFriendRequest(targetUserId: string): Promise<FriendR
 
     // Remove sent request from current user
     await User.findByIdAndUpdate(
-      currentUser._id,
+      currentUser._id as Types.ObjectId,
       {
         $pull: { 
           sentRequests: { 
@@ -515,7 +515,7 @@ export async function removeFriend(friendId: string): Promise<FriendRequestResul
     }
 
     // Check if they are actually friends
-    if (!currentUser.friends.includes(friendId)) {
+    if (!currentUser.friends.some(friend => friend.toString() === friendId)) {
       return {
         success: false,
         message: 'You are not friends with this user'
@@ -524,7 +524,7 @@ export async function removeFriend(friendId: string): Promise<FriendRequestResul
 
     // Remove from both users' friends lists
     await User.findByIdAndUpdate(
-      currentUser._id,
+      currentUser._id as Types.ObjectId,
       {
         $pull: { friends: friendId }
       }
@@ -533,7 +533,7 @@ export async function removeFriend(friendId: string): Promise<FriendRequestResul
     await User.findByIdAndUpdate(
       friendId,
       {
-        $pull: { friends: currentUser._id }
+        $pull: { friends: currentUser._id as Types.ObjectId }
       }
     )
 

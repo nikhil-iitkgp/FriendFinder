@@ -1,4 +1,4 @@
-import { io } from 'socket.io-client'
+import io from 'socket.io-client'
 
 // Socket.IO client configuration
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3003'
@@ -21,8 +21,7 @@ class SocketService {
 
       this.socket = io(SOCKET_URL, {
         transports: ['websocket', 'polling'],
-        timeout: 5000,
-        retries: 3
+        timeout: 5000
       })
 
       this.socket.on('connect', () => {
