@@ -1,7 +1,7 @@
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 
-const SOCKET_PORT = process.env.SOCKET_PORT || 3004;
+const SOCKET_PORT = process.env.PORT || process.env.SOCKET_PORT || 3004;
 
 // Connection health tracking
 let connectionHealth = {
@@ -18,15 +18,25 @@ console.log('Starting Socket.IO server...');
 const socketServer = createServer();
 
 // Initialize Socket.IO with enhanced configuration
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const allowedOrigins = isDevelopment 
+  ? [
+      "http://localhost:3000",
+      "http://localhost:3001", 
+      "http://localhost:3002",
+      "http://localhost:3003",
+    ]
+  : [
+      "https://friendfinder-0i02.onrender.com",
+      process.env.NEXTAUTH_URL,
+    ].filter(Boolean);
+
+console.log('Socket.IO CORS origins:', allowedOrigins);
+
 const io = new Server(socketServer, {
   path: "/socket.io/",
   cors: {
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:3002",
-      "http://localhost:3003",
-    ],
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -38,9 +48,11 @@ const io = new Server(socketServer, {
   upgradeTimeout: 10000,
   maxHttpBufferSize: 1e6,
   allowRequest: (req, callback) => {
-    // Basic security check
-    const isAllowed = req.headers.origin ? 
-      req.headers.origin.includes('localhost') : true;
+    const origin = req.headers.origin;
+    const isAllowed = !origin || allowedOrigins.some(allowed => 
+      origin === allowed || (isDevelopment && origin.includes('localhost'))
+    );
+    console.log(`Socket.IO connection request from ${origin}: ${isAllowed ? 'ALLOWED' : 'DENIED'}`);
     callback(null, isAllowed);
   }
 });

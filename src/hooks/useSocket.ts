@@ -43,7 +43,7 @@ export function useSocket() {
   const isConnected = connectionState.status === 'connected'
 
   // Socket URL configuration
-  const socketPort = process.env.NEXT_PUBLIC_SOCKET_PORT || '3006'
+  const socketPort = process.env.NEXT_PUBLIC_SOCKET_PORT || '3004'
   const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://localhost:${socketPort}`
 
   // Initialize Socket.IO connection

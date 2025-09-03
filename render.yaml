@@ -10,6 +10,8 @@ services:
         value: production
       - key: NEXTAUTH_URL
         value: https://friendfinder-0i02.onrender.com
+      - key: NEXT_PUBLIC_SOCKET_URL
+        value: https://friendfinder-0i02.onrender.com
       - key: PORT
         value: 10000
       - key: SKIP_ENV_VALIDATION

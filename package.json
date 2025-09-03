@@ -17,7 +17,7 @@
     "dev:custom": "node server.js",
     "build": "next build",
     "build:production": "SKIP_ENV_VALIDATION=1 next build",
-    "start": "next start",
+    "start": "node server-integration.js",
     "start:production": "concurrently \"npm start\" \"npm run dev:socket\" --names \"Next.js,Socket.IO\" --prefix-colors \"cyan,yellow\"",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
