@@ -26,7 +26,7 @@ export const activeUsers = new Map<string, SocketUser>()
 
 export function initializeSocketIO(server: NetServer): ServerIO {
   const io = new ServerIO(server, {
-    path: '/api/socket',
+    path: '/api/socket.io',
     addTrailingSlash: false,
     cors: {
       origin: process.env.NODE_ENV === 'production' 

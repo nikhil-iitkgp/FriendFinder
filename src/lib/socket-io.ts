@@ -24,7 +24,7 @@ export const initSocketIO = (server: NetServer): ServerIO => {
   }
 
   io = new ServerIO(server, {
-    path: '/api/socket',
+    path: '/api/socket.io',
     cors: {
       origin: process.env.NODE_ENV === 'production' 
         ? process.env.NEXTAUTH_URL 

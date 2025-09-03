@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
@@ -23,12 +23,14 @@ import {
   Home,
   Phone,
   MapPin,
+  Shuffle,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Friends", href: "/dashboard/friends", icon: Users },
   { name: "Messages", href: "/dashboard/messages", icon: MessageCircle },
+  { name: "Random Chat", href: "/dashboard/random-chat", icon: Shuffle },
   { name: "Discover", href: "/dashboard/discover", icon: Compass },
   { name: "Profile", href: "/dashboard/profile", icon: User },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
@@ -41,10 +43,16 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
   const { user, logout } = useAuth();
   const router = useRouter();
+
+  // Hydration fix: ensure client-side rendering matches server-side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Get user display name safely
   const displayName = user?.username || session?.user?.name || "User";
@@ -88,6 +96,7 @@ export default function DashboardLayout({
                 size="sm"
                 onClick={() => setSidebarOpen(false)}
                 aria-label="Close sidebar"
+                className="h-10 w-10 p-0"
               >
                 <X className="h-5 w-5" />
               </Button>
@@ -95,15 +104,16 @@ export default function DashboardLayout({
             <nav className="flex-1 space-y-1 px-4 py-4">
               {navigation.map((item) => {
                 const isActive = pathname === item.href;
+                const baseClasses = "group flex items-center px-3 py-3 text-base font-medium rounded-md transition-colors touch-target-44";
+                const activeClasses = isActive
+                  ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900";
+                
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                      isActive
-                        ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                    }`}
+                    className={`${baseClasses} ${activeClasses}`}
                     onClick={() => setSidebarOpen(false)}
                   >
                     <item.icon
@@ -130,10 +140,10 @@ export default function DashboardLayout({
       {/* Main content */}
       <div className="flex flex-col flex-1">
         {/* Top navigation */}
-        <div className="sticky top-0 z-10 flex-shrink-0 flex h-14 sm:h-16 bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-200">
+        <div className="sticky top-0 z-10 flex-shrink-0 flex h-16 bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-200">
           <button
             type="button"
-            className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 lg:hidden"
+            className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 lg:hidden touch-target-44"
             onClick={() => setSidebarOpen(true)}
             aria-label="Open sidebar"
           >
@@ -157,17 +167,20 @@ export default function DashboardLayout({
               <div className="flex items-center space-x-1">
                 {navigation.map((item) => {
                   const isActive = pathname === item.href;
+                  const baseClasses = "flex items-center px-4 text-base font-medium rounded-lg transition-colors touch-target-44";
+                  const sizeClasses = "py-2 text-sm";
+                  const iconClasses = "w-4 h-4 mr-2";
+                  const activeClasses = isActive
+                    ? "bg-blue-50 text-blue-600 border border-blue-200"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50";
+                  
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        isActive
-                          ? "bg-blue-50 text-blue-600 border border-blue-200"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                      }`}
+                      className={`${baseClasses} ${sizeClasses} ${activeClasses}`}
                     >
-                      <item.icon className="w-4 h-4 mr-2" />
+                      <item.icon className={iconClasses} />
                       <span>{item.name}</span>
                     </Link>
                   );
@@ -192,7 +205,7 @@ export default function DashboardLayout({
 
               {/* Profile section */}
               <div className="flex items-center space-x-2">
-                <Avatar className="h-8 w-8 lg:h-9 lg:w-9 ring-2 ring-gray-100">
+                <Avatar className="h-9 w-9 lg:h-10 lg:w-10 ring-2 ring-gray-100">
                   <AvatarImage src={userImage || undefined} alt={displayName} />
                   <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold">
                     {displayName
@@ -214,10 +227,10 @@ export default function DashboardLayout({
                   variant="ghost"
                   size="sm"
                   onClick={logout}
-                  className="text-gray-400 hover:text-red-500 transition-colors p-1.5 lg:p-2"
+                  className="text-gray-400 hover:text-red-500 transition-colors p-2 lg:p-2 h-10 w-10"
                   title="Sign out"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-5 w-5" />
                 </Button>
               </div>
             </div>

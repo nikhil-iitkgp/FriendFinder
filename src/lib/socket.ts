@@ -1,7 +1,7 @@
 import io from 'socket.io-client'
 
 // Socket.IO client configuration
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3003'
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3004'
 
 class SocketService {
   private socket: any = null

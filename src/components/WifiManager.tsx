@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wifi, WifiOff, RefreshCw, AlertCircle, CheckCircle } from "lucide-react";
+import {
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface WifiManagerProps {
@@ -45,7 +51,7 @@ export default function WifiManager({ onWifiUpdated }: WifiManagerProps = {}) {
     try {
       setIsUpdating(true);
       const result = await wifiService.updateWifi(ssid.trim());
-      
+
       if (result.success) {
         toast.success(result.message);
         setSsid("");
@@ -53,7 +59,7 @@ export default function WifiManager({ onWifiUpdated }: WifiManagerProps = {}) {
         setTimeout(async () => {
           await loadWifiStatus();
           // Dispatch custom event to notify other components
-          window.dispatchEvent(new CustomEvent('wifiUpdated'));
+          window.dispatchEvent(new CustomEvent("wifiUpdated"));
           // Notify parent component
           if (onWifiUpdated) {
             onWifiUpdated();
@@ -69,7 +75,7 @@ export default function WifiManager({ onWifiUpdated }: WifiManagerProps = {}) {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       updateWifi();
     }
   };
@@ -78,8 +84,10 @@ export default function WifiManager({ onWifiUpdated }: WifiManagerProps = {}) {
     if (!date) return "Never";
     const lastSeen = new Date(date);
     const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60));
-    
+    const diffInMinutes = Math.floor(
+      (now.getTime() - lastSeen.getTime()) / (1000 * 60)
+    );
+
     if (diffInMinutes < 1) return "Just now";
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
@@ -89,17 +97,19 @@ export default function WifiManager({ onWifiUpdated }: WifiManagerProps = {}) {
   return (
     <Card className="border-0 shadow-md">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center space-x-2 text-lg">
+        <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
           {wifiStatus?.hasWiFi ? (
             <Wifi className="h-5 w-5 text-green-600" />
           ) : (
             <WifiOff className="h-5 w-5 text-gray-400" />
           )}
           <span>WiFi Network</span>
-          {isLoading && <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />}
+          {isLoading && (
+            <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />
+          )}
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* Status Display */}
         <div className="flex items-center justify-between">
@@ -127,7 +137,7 @@ export default function WifiManager({ onWifiUpdated }: WifiManagerProps = {}) {
         )}
 
         {/* WiFi Input */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <label className="text-sm font-medium text-gray-700">
             WiFi Network Name (SSID)
           </label>
@@ -137,18 +147,18 @@ export default function WifiManager({ onWifiUpdated }: WifiManagerProps = {}) {
             onKeyPress={handleKeyPress}
             placeholder="Enter your WiFi network name"
             disabled={isUpdating}
-            className="w-full"
+            className="w-full h-11"
           />
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 leading-relaxed">
             Enter the name of your current WiFi network to discover nearby users
           </p>
         </div>
 
         {/* Update Button */}
-        <Button 
-          onClick={updateWifi} 
+        <Button
+          onClick={updateWifi}
           disabled={isUpdating || !ssid.trim()}
-          className="w-full"
+          className="w-full h-11 text-base"
         >
           {isUpdating ? (
             <>
@@ -169,7 +179,10 @@ export default function WifiManager({ onWifiUpdated }: WifiManagerProps = {}) {
             <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
             <div className="text-xs text-blue-800">
               <p className="font-medium mb-1">Privacy Protected</p>
-              <p>Your WiFi network name is hashed before storage. Only users on the same network can discover each other.</p>
+              <p className="leading-relaxed">
+                Your WiFi network name is hashed before storage. Only users on
+                the same network can discover each other.
+              </p>
             </div>
           </div>
         </div>

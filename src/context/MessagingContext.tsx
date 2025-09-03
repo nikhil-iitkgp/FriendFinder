@@ -140,27 +140,32 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
     if (!session?.user) return;
 
     try {
-      // Get JWT token for socket authentication
-      const tokenResponse = await fetch("/api/auth/user");
-      if (!tokenResponse.ok) {
-        throw new Error("Failed to get authentication token");
-      }
-      const tokenData = await tokenResponse.json();
-      const jwtToken = tokenData.token;
+      // Connect directly to Socket.IO server
+      const socketPort = process.env.NEXT_PUBLIC_SOCKET_PORT || '3006';
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://localhost:${socketPort}`;
+      
+      console.log('Connecting to Socket.IO server:', socketUrl);
 
-      // Initialize socket endpoint
-      await fetch("/api/socket");
-
-      const newSocket = io({
-        path: "/api/socket",
-        auth: {
-          token: jwtToken, // Use proper JWT token
-        },
+      const newSocket = io(socketUrl, {
+        path: "/socket.io/",
+        transports: ['websocket', 'polling'],
+        timeout: 20000,
+        autoConnect: true,
       });
 
       newSocket.on("connect", () => {
         console.log("Connected to messaging server");
         setIsConnected(true);
+        
+        // Register user with the socket
+        if (session?.user) {
+          newSocket.emit('user-register', {
+            userId: session.user.id || session.user.email,
+            username: session.user.name || session.user.email?.split('@')[0],
+            email: session.user.email
+          });
+        }
+        
         newSocket.emit("user:join");
       });
 

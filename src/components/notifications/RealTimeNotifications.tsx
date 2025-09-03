@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useFriends } from "@/context/FriendsContext";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
-import { Bell, UserPlus, MessageCircle } from "lucide-react";
+import { toastManager, ToastPriority } from "@/lib/toast-manager";
+import { Bell, UserPlus, MessageCircle, Users, Wifi } from "lucide-react";
 
 export default function RealTimeNotifications() {
   const { data: session } = useSession();
@@ -13,6 +13,36 @@ export default function RealTimeNotifications() {
   const { receivedRequests, refreshRequests } = useFriends();
   const [lastRequestCount, setLastRequestCount] = useState(0);
   const [lastMessageCheck, setLastMessageCheck] = useState(new Date());
+  const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'reconnecting'>('online');
+
+  // Monitor connection status
+  useEffect(() => {
+    const handleOnline = () => {
+      setConnectionStatus('online');
+      toastManager.success("You're back online", {
+        icon: <Wifi className="h-4 w-4" />,
+        duration: 2000,
+        priority: ToastPriority.MEDIUM
+      });
+    };
+
+    const handleOffline = () => {
+      setConnectionStatus('offline');
+      toastManager.warning("You're currently offline", {
+        icon: <Wifi className="h-4 w-4" />,
+        duration: 3000,
+        priority: ToastPriority.HIGH
+      });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Poll for new friend requests every 30 seconds
   useEffect(() => {
@@ -20,9 +50,17 @@ export default function RealTimeNotifications() {
 
     const interval = setInterval(async () => {
       try {
+        setConnectionStatus('online');
         await refreshRequests();
       } catch (error) {
         console.error("Error checking for new requests:", error);
+        setConnectionStatus('reconnecting');
+        
+        toastManager.error("Failed to check for updates", {
+          description: "We'll keep trying to reconnect",
+          priority: ToastPriority.LOW,
+          duration: 3000
+        });
       }
     }, 30000); // 30 seconds
 
@@ -51,10 +89,12 @@ export default function RealTimeNotifications() {
 
           // Show notifications for new messages
           newMessages.forEach((conv: any) => {
-            toast.success(`New message from ${conv.participant.username}`, {
-              description:
-                conv.latestMessage.content.substring(0, 50) +
-                (conv.latestMessage.content.length > 50 ? "..." : ""),
+            const messagePreview = conv.latestMessage.content.length > 50 
+              ? conv.latestMessage.content.substring(0, 50) + "..."
+              : conv.latestMessage.content;
+
+            toastManager.success(`New message from ${conv.participant.username}`, {
+              description: messagePreview,
               action: {
                 label: "View",
                 onClick: () => {
@@ -62,13 +102,19 @@ export default function RealTimeNotifications() {
                 },
               },
               icon: <MessageCircle className="h-4 w-4" />,
+              priority: ToastPriority.HIGH,
+              duration: 6000
             });
           });
 
           setLastMessageCheck(new Date());
+          setConnectionStatus('online');
+        } else {
+          throw new Error('Failed to fetch conversations');
         }
       } catch (error) {
         console.error("Error checking for new messages:", error);
+        setConnectionStatus('reconnecting');
       }
     };
 
@@ -83,7 +129,7 @@ export default function RealTimeNotifications() {
 
       if (newRequestsCount === 1) {
         const latestRequest = receivedRequests[receivedRequests.length - 1];
-        toast.success(
+        toastManager.success(
           `New friend request from ${latestRequest.from?.username}`,
           {
             description: "Tap to view and respond",
@@ -94,10 +140,12 @@ export default function RealTimeNotifications() {
               },
             },
             icon: <UserPlus className="h-4 w-4" />,
+            priority: ToastPriority.HIGH,
+            duration: 6000
           }
         );
       } else {
-        toast.success(`${newRequestsCount} new friend requests`, {
+        toastManager.success(`${newRequestsCount} new friend requests`, {
           description: "Tap to view and respond",
           action: {
             label: "View",
@@ -105,7 +153,9 @@ export default function RealTimeNotifications() {
               window.location.href = "/dashboard/friends?tab=requests";
             },
           },
-          icon: <UserPlus className="h-4 w-4" />,
+          icon: <Users className="h-4 w-4" />,
+          priority: ToastPriority.HIGH,
+          duration: 6000
         });
       }
     }
@@ -113,21 +163,40 @@ export default function RealTimeNotifications() {
     setLastRequestCount(receivedRequests.length);
   }, [receivedRequests, lastRequestCount]);
 
-  // Show online/offline status notifications
+  // Show initial online status notification
   useEffect(() => {
     if (!user) return;
 
-    // Simulate going online
     const showOnlineStatus = () => {
-      toast.success("You're now online", {
+      toastManager.info("You're now online", {
         description: "Friends can see your activity",
         icon: <Bell className="h-4 w-4" />,
+        priority: ToastPriority.LOW,
+        duration: 3000
       });
     };
 
     const timer = setTimeout(showOnlineStatus, 2000);
     return () => clearTimeout(timer);
   }, [user]);
+
+  // Show connection status changes
+  useEffect(() => {
+    if (connectionStatus === 'reconnecting') {
+      const loadingToastId = toastManager.loading("Reconnecting...", {
+        description: "Checking for updates",
+        icon: <Wifi className="h-4 w-4" />,
+        priority: ToastPriority.MEDIUM
+      });
+
+      // Auto-dismiss loading toast after 5 seconds
+      setTimeout(() => {
+        if (loadingToastId) {
+          toastManager.dismiss(loadingToastId);
+        }
+      }, 5000);
+    }
+  }, [connectionStatus]);
 
   return null; // This component only handles notifications, no UI
 }

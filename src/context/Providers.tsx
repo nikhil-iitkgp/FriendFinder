@@ -7,6 +7,7 @@ import { CallProvider } from "./CallContext";
 import { LocationProvider } from "./LocationContext";
 import { FriendsProvider } from "./FriendsContext";
 import { MessagingProvider } from "./MessagingContext";
+import { RandomChatProvider } from "./RandomChatContext";
 import { PresenceProvider } from "./PresenceProvider";
 import { ThemeProvider } from "@/components/theme-provider";
 import type { Session } from "next-auth";
@@ -37,7 +38,9 @@ export function Providers({ children, session }: ProvidersProps) {
             <CallProvider>
               <LocationProvider>
                 <FriendsProvider>
-                  <MessagingProvider>{children}</MessagingProvider>
+                  <MessagingProvider>
+                    <RandomChatProvider>{children}</RandomChatProvider>
+                  </MessagingProvider>
                 </FriendsProvider>
               </LocationProvider>
             </CallProvider>

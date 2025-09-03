@@ -4,6 +4,9 @@ import { getToken } from 'next-auth/jwt'
 import dbConnect from '@/lib/mongoose'
 import User from '@/models/User'
 import Message from '@/models/Message'
+import RandomChatSession from '@/models/RandomChatSession'
+import RandomChatQueue from '@/models/RandomChatQueue'
+import { moderateContent } from '@/lib/content-moderation'
 
 export interface SocketUser {
   id: string
@@ -22,6 +25,18 @@ export interface ServerToClientEvents {
   'typing:stop': (data: { chatId: string; userId: string }) => void
   'friend:request': (data: any) => void
   'friend:accepted': (data: any) => void
+  // Random Chat Events
+  'random-chat:match-found': (data: any) => void
+  'random-chat:message-received': (message: any) => void
+  'random-chat:partner-typing': () => void
+  'random-chat:partner-stopped-typing': () => void
+  'random-chat:partner-left': () => void
+  'random-chat:session-ended': (reason: string) => void
+  'random-chat:queue-position': (data: { position: number; estimatedWait: number }) => void
+  // WebRTC Events for Random Chat
+  'random-chat:webrtc-offer-received': (data: { sessionId: string; offer: RTCSessionDescriptionInit }) => void
+  'random-chat:webrtc-answer-received': (data: { sessionId: string; answer: RTCSessionDescriptionInit }) => void
+  'random-chat:webrtc-ice-candidate-received': (data: { sessionId: string; candidate: RTCIceCandidate }) => void
   'error': (message: string) => void
 }
 
@@ -36,6 +51,22 @@ export interface ClientToServerEvents {
   'typing:start': (data: { chatId: string; receiverId: string }) => void
   'typing:stop': (data: { chatId: string; receiverId: string }) => void
   'user:join': () => void
+  // Random Chat Events
+  'random-chat:join-queue': (preferences: any) => void
+  'random-chat:leave-queue': () => void
+  'random-chat:message-send': (data: {
+    sessionId: string
+    content: string
+    type?: 'text' | 'image'
+  }) => void
+  'random-chat:typing-start': (sessionId: string) => void
+  'random-chat:typing-stop': (sessionId: string) => void
+  'random-chat:end-session': (sessionId: string) => void
+  'random-chat:join-session': (sessionId: string) => void
+  // WebRTC Events for Random Chat
+  'random-chat:webrtc-offer': (data: { sessionId: string; offer: RTCSessionDescriptionInit }) => void
+  'random-chat:webrtc-answer': (data: { sessionId: string; answer: RTCSessionDescriptionInit }) => void
+  'random-chat:webrtc-ice-candidate': (data: { sessionId: string; candidate: RTCIceCandidate }) => void
 }
 
 export interface InterServerEvents {
@@ -58,6 +89,153 @@ export type SocketIOSocket = Parameters<Parameters<SocketIOServer['on']>[1]>[0]
 // Store online users
 const onlineUsers = new Map<string, SocketUser>()
 
+// Random Chat Matching Service
+let matchingInterval: NodeJS.Timeout | null = null
+
+const startRandomChatMatching = (io: SocketIOServer) => {
+  if (matchingInterval) {
+    clearInterval(matchingInterval)
+  }
+
+  matchingInterval = setInterval(async () => {
+    try {
+      await performRandomChatMatching(io)
+    } catch (error) {
+      console.error('Error in random chat matching:', error)
+    }
+  }, 5000) // Run every 5 seconds
+
+  console.log('Random chat matching service started')
+}
+
+const stopRandomChatMatching = () => {
+  if (matchingInterval) {
+    clearInterval(matchingInterval)
+    matchingInterval = null
+    console.log('Random chat matching service stopped')
+  }
+}
+
+const performRandomChatMatching = async (io: SocketIOServer) => {
+  try {
+    await dbConnect()
+    
+    // Get all active queue entries
+    const queueEntries = await RandomChatQueue.find({ isActive: true })
+      .sort({ priority: -1, joinedAt: 1 })
+    
+    if (queueEntries.length < 2) {
+      return // Need at least 2 people to match
+    }
+
+    const processedUsers = new Set<string>()
+    
+    for (const entry of queueEntries) {
+      if (processedUsers.has(entry.userId.toString())) {
+        continue
+      }
+      
+      // Find a match for this user
+      const match = await RandomChatQueue.findNextMatch(entry.userId, entry.preferences)
+      
+      if (match && !processedUsers.has(match.userId.toString())) {
+        // Create session
+        const sessionId = RandomChatSession.generateSessionId()
+        
+        const participants = [
+          {
+            userId: entry.userId,
+            username: entry.username,
+            anonymousId: entry.anonymousId,
+            joinedAt: new Date(),
+            isActive: true,
+          },
+          {
+            userId: match.userId,
+            username: match.username,
+            anonymousId: match.anonymousId,
+            joinedAt: new Date(),
+            isActive: true,
+          },
+        ]
+
+        const session = new RandomChatSession({
+          sessionId,
+          participants,
+          status: 'active',
+          chatType: entry.preferences.chatType,
+          preferences: entry.preferences,
+          metadata: {
+            startTime: new Date(),
+            messagesCount: 0,
+            reportCount: 0,
+          },
+        })
+
+        await session.save()
+        
+        // Remove both users from queue
+        await RandomChatQueue.deleteMany({
+          userId: { $in: [entry.userId, match.userId] },
+        })
+        
+        // Notify both users
+        const matchData1 = {
+          sessionId,
+          partner: {
+            anonymousId: match.anonymousId,
+            username: match.anonymousId,
+          },
+          chatType: entry.preferences.chatType,
+          userAnonymousId: entry.anonymousId,
+        }
+        
+        const matchData2 = {
+          sessionId,
+          partner: {
+            anonymousId: entry.anonymousId,
+            username: entry.anonymousId,
+          },
+          chatType: entry.preferences.chatType,
+          userAnonymousId: match.anonymousId,
+        }
+        
+        io.to(`user:${entry.userId}`).emit('random-chat:match-found', matchData1)
+        io.to(`user:${match.userId}`).emit('random-chat:match-found', matchData2)
+        
+        console.log(`Random chat match created: ${entry.anonymousId} <-> ${match.anonymousId}`)
+        
+        // Mark as processed
+        processedUsers.add(entry.userId.toString())
+        processedUsers.add(match.userId.toString())
+      } else {
+        // No match found, increment retry count
+        await entry.incrementRetry()
+        
+        // Send queue position update
+        const position = await RandomChatQueue.countDocuments({
+          'preferences.chatType': entry.preferences.chatType,
+          joinedAt: { $lt: entry.joinedAt },
+          isActive: true,
+        }) + 1
+        
+        const estimatedWait = Math.max(30, 300 - entry.retryCount * 30) // Decrease wait time estimate
+        
+        io.to(`user:${entry.userId}`).emit('random-chat:queue-position', {
+          position,
+          estimatedWait,
+        })
+      }
+    }
+    
+    // Clean up old queue entries
+    await RandomChatQueue.cleanupOldEntries()
+    
+  } catch (error) {
+    console.error('Error in performRandomChatMatching:', error)
+  }
+}
+
 export function initializeSocketIO(server: NetServer): SocketIOServer {
   const io = new ServerIO<
     ClientToServerEvents,
@@ -65,7 +243,7 @@ export function initializeSocketIO(server: NetServer): SocketIOServer {
     InterServerEvents,
     SocketData
   >(server, {
-    path: '/api/socket',
+    path: '/api/socket.io',
     addTrailingSlash: false,
     cors: {
       origin: process.env.NEXTAUTH_URL || 'http://localhost:3000',
@@ -284,6 +462,145 @@ export function initializeSocketIO(server: NetServer): SocketIOServer {
       }
     })
 
+    // Random Chat Event Handlers
+    
+    // Join user to random chat session room
+    socket.on('random-chat:join-session', async (sessionId: string) => {
+      try {
+        const session = await RandomChatSession.findOne({
+          sessionId,
+          'participants.userId': user.id,
+        })
+        
+        if (session) {
+          socket.join(`random-chat:${sessionId}`)
+          console.log(`User ${user.username} joined random chat session: ${sessionId}`)
+        }
+      } catch (error) {
+        console.error('Error joining random chat session:', error)
+      }
+    })
+
+    // Handle random chat messages
+    socket.on('random-chat:message-send', async (data) => {
+      try {
+        const { sessionId, content, type = 'text' } = data
+
+        // Find the session
+        const session = await RandomChatSession.findOne({
+          sessionId,
+          'participants.userId': user.id,
+          status: 'active',
+        })
+
+        if (!session) {
+          socket.emit('error', 'Session not found or inactive')
+          return
+        }
+
+        // Get user's anonymous ID
+        const anonymousId = session.getAnonymousId(user.id)
+        if (!anonymousId) {
+          socket.emit('error', 'Invalid session state')
+          return
+        }
+
+        // Basic content filtering
+        const filteredContent = content.trim()
+        if (!filteredContent || filteredContent.length > 1000) {
+          socket.emit('error', 'Invalid message content')
+          return
+        }
+
+        // Apply content moderation
+        const moderationResult = moderateContent(filteredContent, user.id)
+        if (!moderationResult.isAllowed) {
+          socket.emit('error', moderationResult.reason || 'Message blocked by content filter')
+          return
+        }
+
+        // Add message to session (use moderated content)
+        await session.addMessage(user.id, anonymousId, moderationResult.filteredContent || filteredContent, type)
+
+        const messageData = {
+          messageId: session.messages[session.messages.length - 1].messageId,
+          sessionId,
+          anonymousId,
+          content: moderationResult.filteredContent || filteredContent,
+          timestamp: new Date(),
+          type,
+          isOwn: false, // Will be set to true for sender
+        }
+
+        // Send to all participants in the session
+        socket.to(`random-chat:${sessionId}`).emit('random-chat:message-received', messageData)
+        
+        // Send back to sender with isOwn flag
+        socket.emit('random-chat:message-received', { ...messageData, isOwn: true })
+
+        console.log(`Random chat message sent in session ${sessionId}`)
+      } catch (error) {
+        console.error('Error sending random chat message:', error)
+        socket.emit('error', 'Failed to send message')
+      }
+    })
+
+    // Handle random chat typing indicators
+    socket.on('random-chat:typing-start', (sessionId: string) => {
+      socket.to(`random-chat:${sessionId}`).emit('random-chat:partner-typing')
+    })
+
+    socket.on('random-chat:typing-stop', (sessionId: string) => {
+      socket.to(`random-chat:${sessionId}`).emit('random-chat:partner-stopped-typing')
+    })
+
+    // Handle ending random chat session
+    socket.on('random-chat:end-session', async (sessionId: string) => {
+      try {
+        const session = await RandomChatSession.findOne({
+          sessionId,
+          'participants.userId': user.id,
+          status: { $in: ['waiting', 'active'] },
+        })
+
+        if (session) {
+          // End the session
+          await session.endSession('user_left')
+          
+          // Notify partner
+          socket.to(`random-chat:${sessionId}`).emit('random-chat:partner-left')
+          
+          // Notify all participants that session ended
+          io.to(`random-chat:${sessionId}`).emit('random-chat:session-ended', 'user_left')
+          
+          // Remove users from session room
+          const socketsInRoom = await io.in(`random-chat:${sessionId}`).fetchSockets()
+          socketsInRoom.forEach(s => s.leave(`random-chat:${sessionId}`))
+          
+          console.log(`Random chat session ${sessionId} ended by ${user.username}`)
+        }
+      } catch (error) {
+        console.error('Error ending random chat session:', error)
+      }
+    })
+
+    // WebRTC Event Handlers for Random Chat
+    
+    // Handle WebRTC offer
+    socket.on('random-chat:webrtc-offer', (data: { sessionId: string; offer: RTCSessionDescriptionInit }) => {
+      socket.to(`random-chat:${data.sessionId}`).emit('random-chat:webrtc-offer-received', data)
+    })
+
+    // Handle WebRTC answer
+    socket.on('random-chat:webrtc-answer', (data: { sessionId: string; answer: RTCSessionDescriptionInit }) => {
+      socket.to(`random-chat:${data.sessionId}`).emit('random-chat:webrtc-answer-received', data)
+    })
+
+    // Handle ICE candidates
+    socket.on('random-chat:webrtc-ice-candidate', (data: { sessionId: string; candidate: RTCIceCandidate }) => {
+      socket.to(`random-chat:${data.sessionId}`).emit('random-chat:webrtc-ice-candidate-received', data)
+    })
+
     // Handle disconnection
     socket.on('disconnect', async () => {
       console.log(`User disconnected: ${user.username} (${socket.id})`)
@@ -304,6 +621,9 @@ export function initializeSocketIO(server: NetServer): SocketIOServer {
       }
     })
   })
+
+  // Start random chat matching service
+  startRandomChatMatching(io)
 
   return io
 }
@@ -350,4 +670,4 @@ async function notifyFriendsOnlineStatus(userId: string, isOnline: boolean) {
   }
 }
 
-export { onlineUsers }
+export { onlineUsers, startRandomChatMatching, stopRandomChatMatching }

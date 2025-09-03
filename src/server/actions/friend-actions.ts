@@ -129,7 +129,7 @@ export async function sendFriendRequest(targetUserId: string): Promise<FriendReq
 
     // Send real-time notification via Socket.IO API
     try {
-      await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3003'}/api/socket`, {
+      await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3003'}/api/socket.io`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -248,7 +248,7 @@ export async function respondToFriendRequest(
 
       // Send real-time notification for friend request acceptance
       try {
-        await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3003'}/api/socket`, {
+        await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3003'}/api/socket.io`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -303,7 +303,7 @@ export async function respondToFriendRequest(
 
       // Send real-time notification for friend request rejection
       try {
-        await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3003'}/api/socket`, {
+        await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3003'}/api/socket.io`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

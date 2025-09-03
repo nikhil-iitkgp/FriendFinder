@@ -3,187 +3,337 @@
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { 
+  Home, 
+  Users, 
+  MessageCircle, 
+  Shuffle, 
+  Search, 
+  User, 
+  Settings, 
+  Menu, 
+  X, 
+  LogOut,
+  ChevronDown,
+  Sun,
+  Moon,
+  Monitor
+} from "lucide-react";
+import { ThemeToggle, ThemeToggleCompact } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+interface NavigationItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+}
 
 export default function Navigation() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [activeTab, setActiveTab] = useState(pathname);
 
-  const isActive = (path: string) => pathname === path;
+  // Handle scroll effect for header
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Update active tab when pathname changes
+  useEffect(() => {
+    setActiveTab(pathname);
+  }, [pathname]);
+
+  // Close sidebar when route changes
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
+
+  const isActive = (path: string) => {
+    if (path === '/dashboard') {
+      return pathname === '/dashboard';
+    }
+    return pathname.startsWith(path);
+  };
 
   if (status === "loading") {
-    return null;
+    return (
+      <div className="h-16 bg-surface-primary border-b animate-pulse" />
+    );
   }
 
   if (!session) {
     return null;
   }
 
-  const navigationItems = [
-    { href: "/dashboard", label: "Dashboard", icon: "🏠" },
-    { href: "/dashboard/friends", label: "Friends", icon: "👥" },
-    { href: "/dashboard/messages", label: "Messages", icon: "💬" },
-    { href: "/dashboard/discover", label: "Discover", icon: "🔍" },
-    { href: "/dashboard/profile", label: "Profile", icon: "👤" },
-    { href: "/dashboard/settings", label: "Settings", icon: "⚙️" },
+  const navigationItems: NavigationItem[] = [
+    { href: "/dashboard", label: "Dashboard", icon: Home },
+    { href: "/dashboard/friends", label: "Friends", icon: Users, badge: 2 },
+    { href: "/dashboard/messages", label: "Messages", icon: MessageCircle, badge: 5 },
+    { href: "/dashboard/random-chat", label: "Random Chat", icon: Shuffle },
+    { href: "/dashboard/discover", label: "Discover", icon: Search },
+    { href: "/dashboard/profile", label: "Profile", icon: User },
+    { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
 
   return (
     <>
-      {/* Header Navigation */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-4">
+      {/* Enhanced Header Navigation */}
+      <nav className={cn(
+        "fixed top-0 left-0 right-0 z-40 transition-all duration-300",
+        isScrolled 
+          ? "glass-strong shadow-enhanced-lg border-b border-white/20" 
+          : "bg-surface-primary/80 backdrop-blur-sm border-b"
+      )}>
+        <div className="max-w-6xl mx-auto mobile-padding">
           <div className="flex justify-between items-center h-16">
-            {/* Logo */}
+            {/* Enhanced Logo */}
             <Link
               href="/dashboard"
-              className="flex items-center text-xl font-bold text-blue-600 hover:text-blue-700"
+              className="flex items-center text-responsive-lg font-bold text-brand-primary hover:text-brand-secondary transition-all duration-200 hover:scale-105 group"
             >
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold mr-2">
+              <div className="w-8 h-8 gradient-primary rounded-full flex items-center justify-center text-white text-sm font-bold mr-3 shadow-enhanced-sm group-hover:shadow-enhanced-md transition-all duration-200">
                 FF
               </div>
-              FriendFinder
+              <span className="hidden sm:block">FriendFinder</span>
             </Link>
 
             {/* Desktop Navigation Links */}
-            <div className="hidden md:flex space-x-6">
-              {navigationItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive(item.href)
-                      ? "text-blue-600 bg-blue-50"
-                      : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
+            <div className="hidden lg:flex items-center space-x-1">
+              {navigationItems.slice(0, 5).map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.href);
+                
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105",
+                      active
+                        ? "text-brand-primary bg-brand-accent/10 shadow-enhanced-sm"
+                        : "text-muted-foreground hover:text-foreground hover:bg-surface-secondary"
+                    )}
+                  >
+                    <Icon className={cn(
+                      "h-4 w-4 transition-colors",
+                      active && "text-brand-primary"
+                    )} />
+                    <span className="hidden xl:block">{item.label}</span>
+                    {item.badge && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 bg-toast-error text-white text-xs rounded-full flex items-center justify-center animate-pulse">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
 
-            {/* Mobile Menu Button & User Menu */}
-            <div className="flex items-center space-x-4">
+            {/* Right Side Actions */}
+            <div className="flex items-center space-x-2">
+              {/* Theme Toggle */}
+              <div className="hidden sm:block">
+                <ThemeToggle showLabel={false} variant="icon" />
+              </div>
+              
               {/* Mobile Menu Button */}
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="lg:hidden"
                 aria-label="Toggle menu"
               >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  {isSidebarOpen ? (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  ) : (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  )}
-                </svg>
-              </button>
+                {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
 
-              {/* User Menu - Desktop */}
-              <div className="hidden md:flex items-center space-x-4">
-                <span className="text-sm text-gray-700">
-                  {session.user?.name || session.user?.email}
-                </span>
-                <button
+              {/* Desktop User Menu */}
+              <div className="hidden lg:flex items-center space-x-3">
+                <div className="text-right">
+                  <div className="text-sm font-medium text-foreground">
+                    {session.user?.name || "User"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {session.user?.email}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  className="text-sm text-gray-600 hover:text-gray-800 px-3 py-2 rounded-md hover:bg-gray-50"
+                  className="gap-2"
                 >
-                  Sign Out
-                </button>
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden xl:block">Sign Out</span>
+                </Button>
               </div>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Mobile Sidebar Overlay */}
+      {/* Spacer for fixed navigation */}
+      <div className="h-16" />
+
+      {/* Enhanced Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 lg:hidden animate-fade-in"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* Mobile Sidebar */}
+      {/* Enhanced Mobile Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out z-50 md:hidden ${
+        className={cn(
+          "fixed top-0 left-0 h-full w-80 glass-strong shadow-enhanced-2xl transform transition-all duration-300 ease-out z-50 lg:hidden",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        )}
       >
-        <div className="p-4">
+        <div className="flex flex-col h-full p-6">
           {/* Sidebar Header */}
           <div className="flex items-center justify-between mb-8">
             <Link
               href="/dashboard"
-              className="flex items-center text-xl font-bold text-blue-600"
-              onClick={() => setIsSidebarOpen(false)}
+              className="flex items-center text-xl font-bold text-brand-primary hover:text-brand-secondary transition-colors group"
             >
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold mr-2">
+              <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center text-white font-bold mr-3 shadow-enhanced-md group-hover:shadow-enhanced-lg transition-all duration-200">
                 FF
               </div>
               FriendFinder
             </Link>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setIsSidebarOpen(false)}
-              className="p-2 rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+              className="hover:bg-surface-tertiary"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+              <X className="h-5 w-5" />
+            </Button>
           </div>
 
           {/* Sidebar Navigation */}
-          <nav className="space-y-2">
-            {navigationItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsSidebarOpen(false)}
-                className={`flex items-center px-3 py-3 rounded-md text-sm font-medium transition-colors ${
-                  isActive(item.href)
-                    ? "text-blue-600 bg-blue-50 border-r-2 border-blue-600"
-                    : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-                }`}
-              >
-                <span className="mr-3 text-lg">{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
+          <nav className="flex-1 space-y-2">
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group",
+                    active
+                      ? "text-brand-primary bg-brand-accent/20 shadow-enhanced-sm border-l-4 border-brand-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-surface-secondary hover:shadow-enhanced-xs"
+                  )}
+                >
+                  <Icon className={cn(
+                    "h-5 w-5 transition-all duration-200",
+                    active ? "text-brand-primary" : "group-hover:scale-110"
+                  )} />
+                  <span>{item.label}</span>
+                  {item.badge && (
+                    <span className="ml-auto h-6 w-6 bg-toast-error text-white text-xs rounded-full flex items-center justify-center animate-pulse">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </nav>
 
-          {/* Sidebar User Menu */}
-          <div className="absolute bottom-4 left-4 right-4 border-t pt-4">
+          {/* Theme Toggle in Sidebar */}
+          <div className="border-t border-white/10 pt-4 mb-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700 truncate">
-                {session.user?.name || session.user?.email}
-              </span>
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="text-sm text-gray-600 hover:text-gray-800 px-2 py-1 rounded-md hover:bg-gray-50"
-              >
-                Sign Out
-              </button>
+              <span className="text-sm font-medium text-muted-foreground">Theme</span>
+              <ThemeToggleCompact />
             </div>
+          </div>
+
+          {/* Sidebar User Menu */}
+          <div className="border-t border-white/10 pt-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-full flex items-center justify-center text-white font-semibold">
+                {session.user?.name?.[0] || session.user?.email?.[0] || 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-foreground truncate">
+                  {session.user?.name || "User"}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {session.user?.email}
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="w-full gap-2 hover:bg-toast-error hover:text-white hover:border-toast-error transition-all duration-200"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
           </div>
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden">
+        <div className="glass-strong border-t border-white/20 px-4 py-2">
+          <div className="flex items-center justify-around">
+            {navigationItems.slice(0, 5).map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "relative flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-200 min-w-0 flex-1",
+                    active
+                      ? "text-brand-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Icon className={cn(
+                    "h-5 w-5 transition-all duration-200",
+                    active && "text-brand-primary scale-110"
+                  )} />
+                  <span className="text-xs font-medium truncate max-w-full">
+                    {item.label}
+                  </span>
+                  {item.badge && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-toast-error text-white text-xs rounded-full flex items-center justify-center animate-pulse">
+                      {item.badge > 9 ? '9+' : item.badge}
+                    </span>
+                  )}
+                  {active && (
+                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-brand-primary rounded-full" />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+        {/* Safe area padding for devices with home indicator */}
+        <div className="h-safe-bottom bg-surface-primary/80 backdrop-blur-sm" />
+      </div>
+
+      {/* Bottom spacer for mobile navigation */}
+      <div className="h-20 lg:hidden" />
     </>
   );
 }
