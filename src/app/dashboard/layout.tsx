@@ -59,6 +59,11 @@ export default function DashboardLayout({
   const userEmail = user?.email || session?.user?.email;
   const userImage = session?.user?.image;
 
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return null;
+  }
+
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

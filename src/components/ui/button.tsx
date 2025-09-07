@@ -89,8 +89,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         data-slot="button"
         className={cn(buttonVariants({ variant, size }), className)}
         disabled={isDisabled}
-        aria-disabled={isDisabled}
-        aria-busy={loading}
+        {...(isDisabled && { "aria-disabled": "true" })}
+        {...(loading && { "aria-busy": "true" })}
         {...props}
       >
         {content}
