@@ -197,7 +197,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("random-chat:message-send", (data) => {
+  socket.on("random-chat:message-send", async (data) => {
     try {
       if (!data || !data.sessionId || !data.content) {
         socket.emit("error", "Invalid message data");
@@ -205,6 +205,56 @@ io.on("connection", (socket) => {
       }
 
       console.log("Random chat message:", data);
+
+      // Try to persist message to database
+      try {
+        // Import mongoose and models here to avoid circular dependencies
+        const mongoose = require('mongoose');
+        const dbConnect = require('./src/lib/mongoose').default;
+        const RandomChatSession = require('./src/models/RandomChatSession').default;
+        const User = require('./src/models/User').default;
+
+        // Connect to database
+        await dbConnect();
+
+        // Find the session and user
+        const session = activeSessions.get(data.sessionId);
+        if (session) {
+          // Find which user is sending the message
+          const sendingUser = session.user1.socket === socket ? session.user1 : session.user2;
+          
+          if (sendingUser && sendingUser.userId) {
+            // Find the database session
+            const dbSession = await RandomChatSession.findOne({
+              sessionId: data.sessionId,
+              status: 'active'
+            });
+
+            if (dbSession) {
+              // Convert string userId to ObjectId if needed
+              let userObjectId;
+              if (typeof sendingUser.userId === 'string') {
+                userObjectId = new mongoose.Types.ObjectId(sendingUser.userId);
+              } else {
+                userObjectId = sendingUser.userId;
+              }
+
+              // Add message to database
+              await dbSession.addMessage(
+                userObjectId,
+                sendingUser.anonymousId,
+                data.content,
+                data.type || 'text'
+              );
+
+              console.log(`Message persisted to database for session ${data.sessionId}`);
+            }
+          }
+        }
+      } catch (dbError) {
+        console.error("Error persisting message to database:", dbError);
+        // Continue with socket broadcast even if DB save fails
+      }
 
       // Broadcast to session participants
       socket

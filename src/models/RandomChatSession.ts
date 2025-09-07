@@ -299,7 +299,7 @@ RandomChatSessionSchema.methods.endSession = async function(
   }
 
   // Mark all participants as inactive
-  this.participants.forEach(participant => {
+  this.participants.forEach((participant: IRandomChatParticipant) => {
     if (participant.isActive) {
       participant.isActive = false;
       participant.leftAt = new Date();
@@ -315,7 +315,7 @@ RandomChatSessionSchema.methods.endSession = async function(
 RandomChatSessionSchema.methods.getPartner = function(
   userId: mongoose.Types.ObjectId
 ): IRandomChatParticipant | null {
-  return this.participants.find(p => 
+  return this.participants.find((p: IRandomChatParticipant) => 
     !p.userId.equals(userId)
   ) || null;
 };
@@ -326,7 +326,7 @@ RandomChatSessionSchema.methods.getPartner = function(
 RandomChatSessionSchema.methods.isParticipant = function(
   userId: mongoose.Types.ObjectId
 ): boolean {
-  return this.participants.some(p => p.userId.equals(userId));
+  return this.participants.some((p: IRandomChatParticipant) => p.userId.equals(userId));
 };
 
 /**
@@ -335,7 +335,7 @@ RandomChatSessionSchema.methods.isParticipant = function(
 RandomChatSessionSchema.methods.getAnonymousId = function(
   userId: mongoose.Types.ObjectId
 ): string | null {
-  const participant = this.participants.find(p => p.userId.equals(userId));
+  const participant = this.participants.find((p: IRandomChatParticipant) => p.userId.equals(userId));
   return participant ? participant.anonymousId : null;
 };
 
@@ -361,6 +361,15 @@ RandomChatSessionSchema.statics.generateAnonymousId = function(): string {
 };
 
 /**
+ * Model interface with static methods
+ */
+interface IRandomChatSessionModel extends Model<IRandomChatSession> {
+  findActiveSessionForUser(userId: mongoose.Types.ObjectId): Promise<IRandomChatSession | null>;
+  generateSessionId(): string;
+  generateAnonymousId(): string;
+}
+
+/**
  * Static method: Find active session for user
  */
 RandomChatSessionSchema.statics.findActiveSessionForUser = function(
@@ -372,7 +381,7 @@ RandomChatSessionSchema.statics.findActiveSessionForUser = function(
   });
 };
 
-const RandomChatSession: Model<IRandomChatSession> = mongoose.models.RandomChatSession || 
-  mongoose.model<IRandomChatSession>('RandomChatSession', RandomChatSessionSchema);
+const RandomChatSession = (mongoose.models.RandomChatSession || 
+  mongoose.model<IRandomChatSession>('RandomChatSession', RandomChatSessionSchema)) as IRandomChatSessionModel;
 
 export default RandomChatSession;

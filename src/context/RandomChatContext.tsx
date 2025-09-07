@@ -253,8 +253,8 @@ export function RandomChatProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [session]);
 
-  // Function to load persisted state from localStorage
-  const loadPersistedState = () => {
+  // Function to load persisted state from localStorage and server
+  const loadPersistedState = async () => {
     try {
       const savedSession = localStorage.getItem('randomChatSession');
       
@@ -272,18 +272,30 @@ export function RandomChatProvider({ children }: { children: ReactNode }) {
             setActiveSession(parsedSession);
           }
           
-          // Load messages for this specific session
-          const sessionStorageKey = `randomChatMessages_${parsedSession.sessionId}`;
-          const savedSessionMessages = localStorage.getItem(sessionStorageKey);
-          
-          console.log('Loading messages with key:', sessionStorageKey, 'found:', !!savedSessionMessages);
-          
-          if (savedSessionMessages) {
-            const parsedMessages = JSON.parse(savedSessionMessages);
-            console.log('Parsed messages:', parsedMessages);
-            
-            // Always restore messages from localStorage
-            setMessages(parsedMessages);
+          // First try to load messages from server (most up-to-date)
+          try {
+            const response = await fetch(`/api/random-chat/session?sessionId=${parsedSession.sessionId}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.data.messages) {
+                console.log('Loaded messages from server:', data.data.messages);
+                setMessages(data.data.messages);
+                
+                // Update localStorage with server messages
+                const sessionStorageKey = `randomChatMessages_${parsedSession.sessionId}`;
+                localStorage.setItem(sessionStorageKey, JSON.stringify(data.data.messages));
+              } else {
+                // Fallback to localStorage if server doesn't have messages
+                loadMessagesFromLocalStorage(parsedSession.sessionId);
+              }
+            } else {
+              // Fallback to localStorage if server request fails
+              loadMessagesFromLocalStorage(parsedSession.sessionId);
+            }
+          } catch (serverError) {
+            console.error('Error loading messages from server:', serverError);
+            // Fallback to localStorage if server request fails
+            loadMessagesFromLocalStorage(parsedSession.sessionId);
           }
           
           // Rejoin the session room if socket is connected
@@ -309,6 +321,20 @@ export function RandomChatProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem(key);
         }
       });
+    }
+  };
+
+  // Helper function to load messages from localStorage
+  const loadMessagesFromLocalStorage = (sessionId: string) => {
+    const sessionStorageKey = `randomChatMessages_${sessionId}`;
+    const savedSessionMessages = localStorage.getItem(sessionStorageKey);
+    
+    console.log('Loading messages from localStorage with key:', sessionStorageKey, 'found:', !!savedSessionMessages);
+    
+    if (savedSessionMessages) {
+      const parsedMessages = JSON.parse(savedSessionMessages);
+      console.log('Parsed messages from localStorage:', parsedMessages);
+      setMessages(parsedMessages);
     }
   };
 

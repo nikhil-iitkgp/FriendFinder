@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Find active session for user
-    const activeSession = await RandomChatSession.findActiveSessionForUser(user._id);
+    const activeSession = await RandomChatSession.findActiveSessionForUser(user._id as any);
 
     if (!activeSession) {
       return NextResponse.json({
@@ -41,8 +41,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Get partner information
-    const partner = activeSession.getPartner(user._id);
-    const userAnonymousId = activeSession.getAnonymousId(user._id);
+    const partner = activeSession.getPartner(user._id as any);
+    const userAnonymousId = activeSession.getAnonymousId(user._id as any);
 
     if (!partner || !userAnonymousId) {
       return NextResponse.json(
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         content: msg.content,
         timestamp: msg.timestamp,
         type: msg.type,
-        isOwn: msg.senderId.equals(user._id),
+        isOwn: msg.senderId.equals(user._id as any),
       }));
 
     return NextResponse.json({
@@ -115,7 +115,46 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { action, sessionId, reason } = body;
+    const { action, sessionId, reason, content, type } = body;
+
+    if (action === 'send-message') {
+      // Send message to session
+      const activeSession = await RandomChatSession.findOne({
+        sessionId,
+        'participants.userId': user._id,
+        status: 'active',
+      });
+
+      if (!activeSession) {
+        return NextResponse.json(
+          { success: false, error: 'Session not found or not active' },
+          { status: 404 }
+        );
+      }
+
+      // Get user's anonymous ID
+      const anonymousId = activeSession.getAnonymousId(user._id as any);
+      if (!anonymousId) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid session state' },
+          { status: 500 }
+        );
+      }
+
+      // Add message to session
+      await activeSession.addMessage(user._id as any, anonymousId, content, type || 'text');
+
+      // Get the newly added message
+      const newMessage = activeSession.messages[activeSession.messages.length - 1];
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          messageId: newMessage.messageId,
+          timestamp: newMessage.timestamp,
+        },
+      });
+    }
 
     if (action === 'end') {
       // End the session
